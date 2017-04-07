@@ -1,6 +1,8 @@
 ---
 title: "HW4 - High income household prediction"
 output: html_document
+Author: Justin Sarna
+Class: MIS 680
 ---
 
 ```{r setup, include=FALSE}
