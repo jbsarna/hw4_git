@@ -63,6 +63,18 @@ acs$own_home <- ifelse(acs$OwnRent == "Rented",0, ifelse(acs$FamilyIncome == "Mo
 # married = 1, male head = 2, female head = 3
 acs$family_type_cat <- ifelse(acs$FamilyType == "Married",1, ifelse(acs$FamilyIncome == "Female Head",2,3))
 ```
+# BASED ON PLOTS AND GROUPBY I AM GOING TO CREATE SOME NEW VARIABLE FOR POTENTIAL USE
+
+```{r}
+acs$InsuranceHigh <- (acs$Insurance > 1000) * 1
+acs$NumWorkers2 <- (acs$NumWorkers == 2) * 1
+acs$HouseCostsHigh <- (acs$HouseCosts > 1000) * 1
+
+acs$HI_pred1 <- 0
+acs$HI_pred1[acs_test$FoodStamp == 'No' & acs_test$OwnRent != 'Rented' & acs_test$FamilyType == 'Married'] <- 1
+
+acs$high_electric <- (acs$ElectricBill > 350) * 1
+```
 Let's break it into a training and test set with an 80/20 split.
 
 ```{r}
@@ -147,6 +159,11 @@ ggplot(acs_fit) + geom_density(aes(x=acs_fit$HouseCosts)) + scale_x_log10(breaks
 ```{r}
 ggplot(acs_fit, aes(x=acs_fit$Insurance, y=acs_fit$FamilyIncome)) +geom_point() + geom_smooth()
 ```
+```{r}
+ggplot(acs_fit) + geom_density(aes(x=acs_fit$ElectricBill)) + scale_x_log10(breaks =c(100,1000,10000,100000), labels=dollar) + annotation_logticks(sides="bt")
+
+ggplot(acs_fit, aes(x=acs_fit$ElectricBill, y=acs_fit$FamilyIncome)) +geom_point() + geom_smooth()
+```
 
 # GROUP BY ANALYSIS
 
@@ -196,15 +213,6 @@ tapply(acs_fit$FamilyIncome,acs_fit$FoodStamp,length)
 tapply(acs_fit$FamilyIncome,acs_fit$FoodStamp,mean)
 ```
 
-# BASED ON PLOTS AND GROUPBY I AM GOING TO CREATE SOME NEW VARIABLE FOR POTENTIAL USE
-
-```{r}
-acs$InsuranceHigh <- (acs$Insurance > 1000) * 1
-acs$NumWorkers2 <- (acs$NumWorkers == 2) * 1
-acs$HouseCostsHigh <- (acs$HouseCosts > 1000) * 1
-
-```
-
 # Task 3 - Building predictive classifier models using the entire training dataset
 
 Let's start by building a *null* model in which you simply predict that everyone's
@@ -229,18 +237,13 @@ confusionMatrix(as.factor(acs$null_model), as.factor(acs$HighIncome), positive =
 
 
 We would like to build a more accurate model than this.
-
 Your job is to build classifiers to predict the binary HighIncome we created. 
-
 You will be using three different classification
 techniques:
-
 * decision trees (use `rpart` package - see Kaggle Titanic example from StatModels2 or session on trees)
 * logistic regression (see logistic regression examples we did in StatModels2)
 * k-nearest neighbor or some other technique (see kNN example we did in StatModels2)
-
 For each technique, you should:
-
 * build a few models with the training data
 * create confusion matrices (using `caret` package) to pick the best fit model for each technique
 * use your three best fit models (one from each technique) to predict using the test dataset and evaluate which of the models performs the best
@@ -248,18 +251,18 @@ For each technique, you should:
 
 # LOGISTIC REGRESSION
 ```{r}
-logmod1 <- 0
+#acs$logmod1 <- 0
 #table(acs_fit$HighIncome, acs_fit$logmod1)
 #prop.table(table(acs_fit$HighIncome, acs_fit$logmod1))
 
 # logistic regression model 1
-logmod1 <- glm(HighIncome ~ FamilyType + NumVehicles + OwnRent + Insurance + YearBuilt, data=acs, family=binomial(link="logit"))
+logmod1 <- glm(HighIncome ~ FamilyType + NumVehicles + OwnRent + Insurance + YearBuilt, data=acs_fit, family=binomial(link="logit"))
 # show regression output/summary stats
 summary(logmod1)
 # fitting values based on model
 # check fitted values as probility
 logmod1$fitted.values[1:10]
-yhat_logmod1 <- (logmod1$fitted.values > 0.000000001) * 1
+yhat_logmod1 <- (logmod1$fitted.values > 0.05) * 1
 # Show fitted values to make sure code is working correctly
 logmod1$y[1:200]
 #acs_test$lm1_yhat <- ifelse(logmod1$fitted.values >=.5,1,0) - I DON'T RECALL WHAT THIS IS FOR
@@ -267,85 +270,102 @@ logmod1$y[1:200]
 #run a table first
 summary(as.factor(yhat_logmod1))
 summary(logmod1$fitted.values)
-table(as.factor(acs$yhat_logmod1), as.factor(acs$HighIncome), positive = "1")
-#confusionMatrix(as.factor(logmod1$fitted.values), as.factor(acs_fit$HighIncome), positive = "1")
+#table(as.factor(acs_fit$yhat_logmod1), as.factor(acs_fit$HighIncome), positive = "1")
+confusionMatrix(as.factor(yhat_logmod1), as.factor(acs_fit$HighIncome), positive = "1")
 ```
 
 ```{r}
 # logistic regression model 2
 logmod2 <- glm(HighIncome ~ FamilyType + FoodStamp + OwnRent, data=acs_fit, family=binomial(link="logit"))
-# show regression output/summary stats
 summary(logmod2)
-# fitting values based on model
-logmod2$fit[1:10]
-yhat_logmod2 <- (logmod1$fit > 0.5) * 1
-# Show fitted values to make sure code is working correctly
+logmod2$fitted.values[100:150]
+yhat_logmod2 <- (logmod2$fitted.values > 0.5) * 1
 logmod2$y[1:50]
-# confusion matrux for this model
-confusionMatrix(as.factor(logmod2$fitted.values), as.factor(acs$HighIncome), positive = "1")
+confusionMatrix(as.factor(yhat_logmod2), as.factor(acs_fit$HighIncome), positive = "1")
 ```
 
 ```{r}
 # logistic regression model 3
-logmod3 <- glm(HighIncome ~ FamilyType + FoodStamp + OwnRent + NumWorkers, data=acs_fit, family=binomial(link="logit"))
-# show regression output/summary stats
+logmod3 <- glm(HighIncome ~ InsuranceHigh + NumWorkers2 + HouseCostsHigh + FoodStamp + OwnRent, data=acs_fit, family=binomial(link="logit"))
 summary(logmod3)
-# fitting values based on model
-logmod3$fit[1:10]
-yhat_logmod3 <- (logmod1$fit > 0.5) * 1
-# Show fitted values to make sure code is working correctly
-logmod3$y[1:50]
-# confusion matrux for this model
-confusionMatrix(as.factor(logmod3$fitted.values), as.factor(acs$HighIncome), positive = "1")
+logmod3$fit[18100:18196]
+yhat_logmod3 <- (logmod3$fit > 0.5) * 1
+logmod3$y[18000:18196]
+confusionMatrix(as.factor(yhat_logmod3), as.factor(acs_fit$HighIncome), positive = "1")
 ```
 
 ```{r}
-# logistic regression model 4
-# show regression output/summary stats
-# fitting values based on model
-# Show fitted values to make sure code is working correctly
-# confusion matrux for this model
-logmod4 <- glm(HighIncome ~ FoodStamp + OwnRent, data=acs_fit, family=binomial(link="logit"))
+logmod4 <- glm(HighIncome ~ InsuranceHigh + NumWorkers2 + HouseCostsHigh, data=acs_fit, family=binomial(link="logit"))
 summary(logmod4)
-logmod4$fit[1:10]
+logmod4$fit[18100:18196]
 yhat_logmod4 <- (logmod4$fit > 0.5) * 1
-logmod4$y[1:50]
-confusionMatrix(as.factor(logmod4$fitted.values), as.factor(acs$HighIncome), positive = "1")
+logmod4$y[18000:18196]
+confusionMatrix(as.factor(yhat_logmod4), as.factor(acs_fit$HighIncome), positive = "1")
 ```
 ```{r}
 
-logmod5 <- glm(HighIncome ~ FoodStamp + OwnRent + HouseCostsHigh + NumWorkers2 + InsuranceHigh, data=acs, family=binomial(link="logit"))
+logmod5 <- glm(HighIncome ~ HouseCostsHigh, data=acs_fit, family=binomial(link="logit"))
 summary(logmod5)
-logmod5$fit[1:10]
-yhat_logmod5 <- (logmod5$fit > 0.5) * 1
-logmod5$y[1:50]
-confusionMatrix(as.factor(logmod5$fitted.values), as.factor(acs$HighIncome), positive = "1")
-
+logmod5$fit[18100:18196]
+yhat_logmod5 <- (logmod4$fit > 0.5) * 1
+logmod5$y[18000:18196]
+confusionMatrix(as.factor(yhat_logmod5), as.factor(acs_fit$HighIncome), positive = "1")
 ```
 
 
 ```{r}
 # Created a linear regression for fun to estimate family income with test data set
-linear_mod1 <- lm(FamilyIncome ~ FamilyType + FoodStamp, data=acs_test)
+linear_mod1 <- lm(FamilyIncome ~ FamilyType + FoodStamp + OwnRent + HouseCosts + Insurance + ElectricBill + NumRooms, data=acs_fit)
 summary(linear_mod1)
 ```
 
-# DECISION TREES
 ```{r}
-acs_test$HI_pred1 <- 0
-acs_test$HI_pred1[acs_test$FoodStamp == 'No' & acs_test$OwnRent != 'Rented' & acs_test$FamilyType == 'Married'] <- 1
+# Created a linear regression for fun to estimate family income with test data set
+linear_mod2 <- lm(FamilyIncome ~ HI_pred1 + HouseCosts + Insurance + high_electric + NumRooms, data=acs_fit)
+summary(linear_mod2)
+```
+
+
+# DECISION TREES
+
+```{r}
+tree1 <- rpart(HighIncome ~ FamilyType + HouseCosts + NumWorkers2 + OwnRent + Insurance + NumWorkers2 + YearBuilt + NumBedrooms, data=acs_fit, method="class")
+rpart.plot(tree1)
+tree1
+# Predictions
+tree_pred1 <- predict(tree1, acs_test, type = "class")
+summary(tree_pred1)
+```
+```{r}
+# Don't run this tree!
+#tree2 <- rpart(HighIncome ~ FoodStamp + Insurance + FamilyType, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=0))
+#rpart.plot(tree2)
+#tree2
+#tree_pred2 <- predict(tree2, acs_test, type = "class")
+#summary(tree_pred2)
+```
+```{r}
+tree3 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=.005))
+rpart.plot(tree3)
+tree3
+tree_pred3 <- predict(tree3, acs_test, type = "class")
+summary(tree_pred3)
 ```
 
 ```{r}
-tree1 <- rpart(HighIncome ~ FamilyType + FoodStamp + OwnRent + HI_pred1 + Insurance + NumWorkers + YearBuilt, data=acs_test, method="class")
-rpart.plot(tree1)
-tree1
+tree4 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts + NumBedrooms + NumChildren + NumPeople + NumRooms + NumVehicles + NumWorkers + FoodStamp + OwnRent + ElectricBill + HouseCosts, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=0))
+rpart.plot(tree4)
+tree4
+tree_pred4 <- predict(tree4, acs_test, type = "class")
+summary(tree_pred4)
 ```
+
+# k-nearest neighbor
+
 ```{r}
-tree2 <- rpart(HI_pred1 ~ FamilyType + FoodStamp + OwnRent + Insurance + NumWorkers + YearBuilt, data=acs_test, method="class")
-rpart.plot(tree2)
-tree2
+
 ```
+
 
 ## HACKER EXTRAS
 
