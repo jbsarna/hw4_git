@@ -1,0 +1,45 @@
+---
+title: "Notes_hw4"
+author: "Justin Sarna"
+date: "April 11, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+```{r}
+# make predictions using test data
+logmod1_pred <- predict(logmod1, newdata=acs_test, type ="response" )
+yhat_logmod1 <- (logmod1_pred > 0.5) * 1
+head(cbind(yhat_logmod1,logmod1_pred))
+
+logmod2_pred <- predict(logmod2, acs_test, type="response" ) 
+
+logmod3_pred <- predict(logmod3, acs_test, type="response" ) 
+logmod4_pred <- predict(logmod4, acs_test, type="response" )
+logmod5_pred <- predict(logmod4, acs_test, type="response" )
+linear2_pred <- predict(linear_mod2, acs_test, type="response")
+
+# Confusion matrices
+#confusionMatrix(as.factor(yhat_logmod5), as.factor(acs_fit$HighIncome), positive = "1")
+log_cm1_pred <- confusionMatrix((logmod1_pred), acs_test$HighIncome, positive = "1")
+log_cm2_pred <- confusionMatrix(logmod2_pred, acs_test$HighIncome, positive = "1")
+log_cm3_pred <- confusionMatrix(logmod3_pred, acs_test$HighIncome, positive = "1")
+log_cm4_pred <- confusionMatrix(logmod4_pred, acs_test$HighIncome, positive = "1")
+log_cm5_pred <- confusionMatrix(logmod5_pred, acs_test$HighIncome, positive = "1")
+linear_cm2_pred <- confusionMatrix(linear2_pred, acs_test$HighIncome, positive = "1")
+
+# Display comparison of accuracy of each decision tree 
+sprintf("Tree1: Fit acc = %.3f Pred acc = %.3f",log_cm1$overall['Accuracy'], log_cm1_pred$overall['Accuracy'])
+sprintf("Tree2: Fit acc = %.3f Pred acc = %.3f",log_cm2$overall['Accuracy'], log_cm2_pred$overall['Accuracy'])
+sprintf("Tree3: Fit acc = %.3f Pred acc = %.3f",log_cm3_cm$overall['Accuracy'], log_cm3_pred$overall['Accuracy'])
+sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",log_cm4_cm$overall['Accuracy'], log_cm4_pred$overall['Accuracy'])
+sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",log_cm5_cm$overall['Accuracy'], log_cm5_pred$overall['Accuracy'])
+sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",linear_cm2$overall['Accuracy'], linear_cm2_pred$overall['Accuracy'])
+```
+```
+
