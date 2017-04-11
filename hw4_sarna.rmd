@@ -327,7 +327,7 @@ log_cm5
 linear_mod1 <- lm(FamilyIncome ~ FamilyType + FoodStamp + OwnRent + HouseCosts + Insurance + ElectricBill + NumRooms, data=acs_fit)
 summary(linear_mod1)
 ```
-#### logistic regression model 2
+#### linear regression model 2
 ```{r}
 # Created another linear regression to estimate family income with test data set to be used for predicting high income
 linear_mod2 <- lm(FamilyIncome ~ Insurance + HouseCosts + ElectricBill + NumWorkers + FamilyType + FoodStamp + OwnRent + NumBedrooms + NumChildren + NumRooms + NumPeople + NumVehicles + Language, data=acs_fit)
