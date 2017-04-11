@@ -318,7 +318,6 @@ yhat_logmod5 <- (logmod4$fit > 0.5) * 1
 log_cm5 <- confusionMatrix(as.factor(yhat_logmod5), as.factor(acs_fit$HighIncome), positive = "1")
 log_cm5
 ```
-
 # Linear Regression with predictions
 
 #### linear regression model 1
@@ -454,8 +453,8 @@ summary(acs_norm)
 ```
 
 ```{r}
-acs_knn <- knn(acsNorm_learn[,2:10], acsNorm_valid[,2:10], acsNorm_learn$HighIncome, k=5, prob = TRUE)
-acs_knn
+acs_knn <- knn(acsNorm_learn[,2:9], acsNorm_valid[,2:9], acsNorm_learn$HighIncome, k=5, prob = TRUE)
+head(acs_knn)
 
 # Show the classification matrix
 table(acsNorm_valid$HighIncome, acs_knn)
@@ -463,7 +462,7 @@ table(acsNorm_valid$HighIncome, acs_knn)
 
 ```{r}
 pcol <- as.character(as.numeric(acsNorm_valid$HighIncome1))
-pairs(acsNorm_valid[1:10], pch = pcol, col = c("green3", "red")
+pairs(acsNorm_valid[2:9], pch = pcol, col = c("green3", "red")
   [(acsNorm_valid$HighIncome1 != acs_knn)+1])
 ```
 

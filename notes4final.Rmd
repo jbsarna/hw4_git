@@ -11,13 +11,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 ```{r}
-```{r}
 # make predictions using test data
 logmod1_pred <- predict(logmod1, newdata=acs_test, type ="response" )
 yhat_logmod1 <- (logmod1_pred > 0.5) * 1
 head(cbind(yhat_logmod1,logmod1_pred))
 
 logmod2_pred <- predict(logmod2, acs_test, type="response" ) 
+yhat_logmod2 <- (logmod2_pred > 0.5) * 1
+head(cbind(yhat_logmod2,logmod2_pred))
 
 logmod3_pred <- predict(logmod3, acs_test, type="response" ) 
 logmod4_pred <- predict(logmod4, acs_test, type="response" )
@@ -40,6 +41,5 @@ sprintf("Tree3: Fit acc = %.3f Pred acc = %.3f",log_cm3_cm$overall['Accuracy'], 
 sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",log_cm4_cm$overall['Accuracy'], log_cm4_pred$overall['Accuracy'])
 sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",log_cm5_cm$overall['Accuracy'], log_cm5_pred$overall['Accuracy'])
 sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",linear_cm2$overall['Accuracy'], linear_cm2_pred$overall['Accuracy'])
-```
 ```
 
