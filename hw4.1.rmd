@@ -31,6 +31,7 @@ library(scales)
 library(plyr)
 library(rpart)
 library(rpart.plot)
+library(class)
 ```
 
 Let's assume our goal is to build a model to predict if household income is greater 
@@ -63,15 +64,13 @@ acs$own_home <- ifelse(acs$OwnRent == "Rented",0, ifelse(acs$FamilyIncome == "Mo
 # married = 1, male head = 2, female head = 3
 acs$family_type_cat <- ifelse(acs$FamilyType == "Married",1, ifelse(acs$FamilyIncome == "Female Head",2,3))
 ```
+
 # BASED ON PLOTS AND GROUPBY I AM GOING TO CREATE SOME NEW VARIABLE FOR POTENTIAL USE
 
 ```{r}
 acs$InsuranceHigh <- (acs$Insurance > 1000) * 1
 acs$NumWorkers2 <- (acs$NumWorkers == 2) * 1
 acs$HouseCostsHigh <- (acs$HouseCosts > 1000) * 1
-
-acs$HI_pred1 <- 0
-acs$HI_pred1[acs_test$FoodStamp == 'No' & acs_test$OwnRent != 'Rented' & acs_test$FamilyType == 'Married'] <- 1
 
 acs$high_electric <- (acs$ElectricBill > 350) * 1
 ```
@@ -82,6 +81,12 @@ set.seed(447)
 testrecs <- sample(nrow(acs),0.2 * nrow(acs))
 acs_test <- acs[testrecs,]
 acs_fit <- acs[-testrecs,]  
+```
+
+```{r}
+acs$HI_pred1 <- 0
+acs$HI_pred1[acs_test$FoodStamp == 'No' & acs_test$OwnRent != 'Rented' & acs_test$FamilyType == 'Married'] <- 1
+
 ```
 
 ```{r}
@@ -362,8 +367,47 @@ summary(tree_pred4)
 
 # k-nearest neighbor
 
+## First Normalize the dataset
 ```{r}
+normalize <- function(x) {
+num <- x - min(x)
+denom <- max(x) - min(x)
+return (num/denom)
+}
+```
+```{r}
+acs_numericals <- data.frame(acs$HighIncome, acs$FamilyIncome, acs$NumBedrooms, acs$NumChildren, acs$NumPeople, acs$NumRooms, acs$NumVehicles, acs$NumWorkers, acs$HouseCosts, acs$ElectricBill, acs$Insurance)
+acs_norm <- as.data.frame(lapply(acs_numericals[2:10], normalize))
+acs_norm$HighIncome1 <- c(acs$HighIncome)
+```
+```{r}
+# Count rows
+m <- nrow(acs_numericals)
 
+# Create index of random row nums for the validation set
+val <- sample(1:m, size = round(m/3))
+
+# Create the learning and validation sets
+acsNorm_learn <- acs_norm[-val,]
+acsNorm_valid <- acs_norm[val,]
+```
+
+```{r}
+#summary(acs_norm)
+```
+
+```{r}
+acs_knn <- knn(acsNorm_learn[,2:10], acsNorm_valid[,2:10], acsNorm_learn$HighIncome, k=5, prob = TRUE)
+acs_knn
+
+# Show the classification matrix
+table(acsNorm_valid$HighIncome, acs_knn)
+```
+
+```{r}
+pcol <- as.character(as.numeric(acsNorm_valid$HighIncome1))
+pairs(acsNorm_valid[1:10], pch = pcol, col = c("green3", "red")
+  [(acsNorm_valid$HighIncome1 != acs_knn)+1])
 ```
 
 
