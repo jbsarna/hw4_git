@@ -318,12 +318,31 @@ linear_mod1 <- lm(FamilyIncome ~ FamilyType + FoodStamp + OwnRent + HouseCosts +
 summary(linear_mod1)
 ```
 
+# Linear Regression with predictions
+
 ```{r}
 # Created a linear regression for fun to estimate family income with test data set
-linear_mod2 <- lm(FamilyIncome ~ HI_pred1 + HouseCosts + Insurance + high_electric + NumRooms, data=acs_fit)
+linear_mod2 <- lm(FamilyIncome ~ Insurance + HouseCosts + ElectricBill + NumWorkers + FamilyType + FoodStamp + OwnRent + NumBedrooms + NumChildren + NumRooms + NumPeople + NumVehicles + Language, data=acs_fit)
 summary(linear_mod2)
+linear_mod2$fitted.values[1:25]
+acs_fit$linest_HighIncome <- ifelse(linear_mod2$fit > 250000,1,0)
+confusionMatrix(as.factor(acs_fit$linest_HighIncome), as.factor(acs_fit$HighIncome), positive = "1")
+
+# My linear model does estimate negative incomes, which is not logically or stastically sound
+# However, the purpose is to find best predictive model. So I ignored this to see how accurate I could predict High Income
 ```
 
+```{r}
+# Created a linear regression for fun to estimate family income with test data set
+linear_mod2 <- lm(FamilyIncome ~ Insurance + HouseCosts + ElectricBill + NumWorkers + FamilyType + FoodStamp + OwnRent + NumBedrooms + NumChildren + NumRooms + NumPeople + NumVehicles + Language, data=acs)
+summary(linear_mod2)
+linear_mod2$fitted.values[1:25]
+acs$linest_HighIncome <- ifelse(linear_mod2$fit > 250000,1,0)
+confusionMatrix(as.factor(acs$linest_HighIncome), as.factor(acs$HighIncome), positive = "1")
+
+# My linear model does estimate negative incomes, which is not logically or stastically sound
+# However, the purpose is to find best predictive model. So I ignored this to see how accurate I could predict High Income
+```
 
 # DECISION TREES
 
