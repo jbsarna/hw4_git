@@ -30,7 +30,7 @@ Let's assume our goal is to build a model to predict if household income is grea
 than $250,000 per year.
 
 
-## Task 1: Data preparation
+# Task 1: Data preparation
 
 We start by building a binary response variable.
 
@@ -266,8 +266,9 @@ For each technique, you should:
 4) set variable equal to fitted values with probability greater than 50%
 5) show fitted values for visual check of model
 6) confusion matrix
+
+#### logistic regression model 1
 ```{r}
-# logistic regression model 1
 logmod1 <- glm(HighIncome ~ FamilyType + NumVehicles + OwnRent + Insurance + YearBuilt, data=acs_fit, family=binomial(link="logit"))
 summary(logmod1)
 logmod1$fitted.values[1:10]
@@ -278,9 +279,8 @@ summary(logmod1$fitted.values)
 log_cm1 <- confusionMatrix(as.factor(yhat_logmod1), as.factor(acs_fit$HighIncome), positive = "1")
 log_cm1
 ```
-
+#### logistic regression model 2
 ```{r}
-# logistic regression model 2
 logmod2 <- glm(HighIncome ~ FamilyType + FoodStamp + OwnRent, data=acs_fit, family=binomial(link="logit"))
 summary(logmod2)
 logmod2$fitted.values[1:10]
@@ -289,9 +289,8 @@ yhat_logmod2 <- (logmod2$fitted.values > 0.5) * 1
 log_cm2 <- confusionMatrix(as.factor(yhat_logmod2), as.factor(acs_fit$HighIncome), positive = "1")
 log_cm2
 ```
-
+#### logistic regression model 3
 ```{r}
-# logistic regression model 3
 logmod3 <- glm(HighIncome ~ InsuranceHigh + NumWorkers2 + HouseCostsHigh + FoodStamp + OwnRent, data=acs_fit, family=binomial(link="logit"))
 summary(logmod3)
 #logmod3$fit[18100:18196]
@@ -300,9 +299,8 @@ yhat_logmod3 <- (logmod3$fit > 0.5) * 1
 log_cm3 <- confusionMatrix(as.factor(yhat_logmod3), as.factor(acs_fit$HighIncome), positive = "1")
 log_cm3
 ```
-
+#### logistic regression model 4
 ```{r}
-# logistic regression model 4
 logmod4 <- glm(HighIncome ~ InsuranceHigh + NumWorkers2 + HouseCostsHigh, data=acs_fit, family=binomial(link="logit"))
 summary(logmod4)
 #logmod4$fit[18100:18196]
@@ -310,8 +308,8 @@ yhat_logmod4 <- (logmod4$fit > 0.5) * 1
 #logmod4$y[18000:18196]
 log_cm4 <- confusionMatrix(as.factor(yhat_logmod4), as.factor(acs_fit$HighIncome), positive = "1")
 ```
+#### logistic regression model 5
 ```{r}
-# logistic regression model 5
 logmod5 <- glm(HighIncome ~ HouseCostsHigh, data=acs_fit, family=binomial(link="logit"))
 summary(logmod5)
 #logmod5$fit[18100:18196]
@@ -323,12 +321,13 @@ log_cm5
 
 # Linear Regression with predictions
 
+#### linear regression model 1
 ```{r}
 # Created a linear regression to estimate family income with test data set
 linear_mod1 <- lm(FamilyIncome ~ FamilyType + FoodStamp + OwnRent + HouseCosts + Insurance + ElectricBill + NumRooms, data=acs_fit)
 summary(linear_mod1)
 ```
-
+#### logistic regression model 2
 ```{r}
 # Created another linear regression to estimate family income with test data set to be used for predicting high income
 linear_mod2 <- lm(FamilyIncome ~ Insurance + HouseCosts + ElectricBill + NumWorkers + FamilyType + FoodStamp + OwnRent + NumBedrooms + NumChildren + NumRooms + NumPeople + NumVehicles + Language, data=acs_fit)
@@ -341,7 +340,7 @@ linear_cm2
 ## Regression Model Comparison
 Could not get it to work how I wanted - I have the big chunk of code if you want to see it!
 
-## Comments on logit and linear regression model
+# Comments on logit and linear regression model
 1) My linear model does estimate negative incomes, which is not logically or stastically sound
     However, the purpose is to find best predictive model. So I ignored this to see how accurate I could predict High Income
     I also created multiple linear regressions, and chose this one. I based my decision on R-squared and changes in adjusted R-
@@ -352,8 +351,8 @@ Could not get it to work how I wanted - I have the big chunk of code if you want
 
 # DECISION TREES
 
+#### Decision tree 1
 ```{r}
-# Decision tree 1
 tree1 <- rpart(HighIncome ~ FamilyType + HouseCosts + NumWorkers2 + OwnRent + Insurance + NumWorkers2 + YearBuilt + NumBedrooms, data=acs_fit, method="class")
 rpart.plot(tree1)
 tree1
@@ -362,8 +361,8 @@ head(predict(tree1, type="class"))
 tree1_cm <- confusionMatrix(predict(tree1, type="class"), acs_fit$HighIncome, positive = "1")
 tree1_cm
 ```
+#### Decision tree 2
 ```{r}
-# Decision tree 2
 tree2 <- rpart(HighIncome ~ FoodStamp + Insurance + FamilyType, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=0))
 rpart.plot(tree2)
 tree2
@@ -374,7 +373,6 @@ tree2_cm
 ```
 #### Decision tree 3
 ```{r}
-# Decision tree 3
 tree3 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=.005))
 rpart.plot(tree3)
 tree3
@@ -383,9 +381,8 @@ head(predict(tree3, type="class"))
 tree3_cm <- confusionMatrix(predict(tree3, type="class"), acs_fit$HighIncome, positive = "1")
 tree3_cm
 ```
-
+#### Decision tree 4
 ```{r}
-# Decision tree 4
 tree4 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts + NumBedrooms + NumChildren + NumPeople + NumRooms + NumVehicles + NumWorkers + FoodStamp + OwnRent + ElectricBill + HouseCosts, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=0))
 rpart.plot(tree4)
 tree4
