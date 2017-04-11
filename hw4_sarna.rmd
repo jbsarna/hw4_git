@@ -269,7 +269,8 @@ yhat_logmod1 <- (logmod1$fitted.values > 0.05) * 1
 #logmod1$y[1:200]
 summary(as.factor(yhat_logmod1))
 summary(logmod1$fitted.values)
-confusionMatrix(as.factor(yhat_logmod1), as.factor(acs_fit$HighIncome), positive = "1")
+log_cm1 <- confusionMatrix(as.factor(yhat_logmod1), as.factor(acs_fit$HighIncome), positive = "1")
+log_cm1
 ```
 
 ```{r}
@@ -279,7 +280,8 @@ summary(logmod2)
 logmod2$fitted.values[1:10]
 yhat_logmod2 <- (logmod2$fitted.values > 0.5) * 1
 #logmod2$y[1:50]
-confusionMatrix(as.factor(yhat_logmod2), as.factor(acs_fit$HighIncome), positive = "1")
+log_cm2 <- confusionMatrix(as.factor(yhat_logmod2), as.factor(acs_fit$HighIncome), positive = "1")
+log_cm2
 ```
 
 ```{r}
@@ -289,7 +291,8 @@ summary(logmod3)
 #logmod3$fit[18100:18196]
 yhat_logmod3 <- (logmod3$fit > 0.5) * 1
 #logmod3$y[18000:18196]
-confusionMatrix(as.factor(yhat_logmod3), as.factor(acs_fit$HighIncome), positive = "1")
+log_cm3 <- confusionMatrix(as.factor(yhat_logmod3), as.factor(acs_fit$HighIncome), positive = "1")
+log_cm3
 ```
 
 ```{r}
@@ -299,50 +302,47 @@ summary(logmod4)
 #logmod4$fit[18100:18196]
 yhat_logmod4 <- (logmod4$fit > 0.5) * 1
 #logmod4$y[18000:18196]
-confusionMatrix(as.factor(yhat_logmod4), as.factor(acs_fit$HighIncome), positive = "1")
+log_cm4 <- confusionMatrix(as.factor(yhat_logmod4), as.factor(acs_fit$HighIncome), positive = "1")
 ```
 ```{r}
 # logistic regression model 5
 logmod5 <- glm(HighIncome ~ HouseCostsHigh, data=acs_fit, family=binomial(link="logit"))
 summary(logmod5)
-logmod5$fit[18100:18196]
+#logmod5$fit[18100:18196]
 yhat_logmod5 <- (logmod4$fit > 0.5) * 1
-logmod5$y[18000:18196]
-confusionMatrix(as.factor(yhat_logmod5), as.factor(acs_fit$HighIncome), positive = "1")
+#logmod5$y[18000:18196]
+log_cm5 <- confusionMatrix(as.factor(yhat_logmod5), as.factor(acs_fit$HighIncome), positive = "1")
+log_cm5
 ```
 
 # Linear Regression with predictions
 
 ```{r}
-# Created a linear regression for fun to estimate family income with test data set
+# Created a linear regression to estimate family income with test data set
 linear_mod1 <- lm(FamilyIncome ~ FamilyType + FoodStamp + OwnRent + HouseCosts + Insurance + ElectricBill + NumRooms, data=acs_fit)
 summary(linear_mod1)
 ```
 
 ```{r}
-# Created a linear regression for fun to estimate family income with test data set
+# Created another linear regression to estimate family income with test data set to be used for predicting high income
 linear_mod2 <- lm(FamilyIncome ~ Insurance + HouseCosts + ElectricBill + NumWorkers + FamilyType + FoodStamp + OwnRent + NumBedrooms + NumChildren + NumRooms + NumPeople + NumVehicles + Language, data=acs_fit)
 summary(linear_mod2)
 linear_mod2$fitted.values[1:25]
 acs_fit$linest_HighIncome <- ifelse(linear_mod2$fit > 250000,1,0)
-confusionMatrix(as.factor(acs_fit$linest_HighIncome), as.factor(acs_fit$HighIncome), positive = "1")
-
-# My linear model does estimate negative incomes, which is not logically or stastically sound
-# However, the purpose is to find best predictive model. So I ignored this to see how accurate I could predict High Income
+linear_cm2 <- confusionMatrix(as.factor(acs_fit$linest_HighIncome), as.factor(acs_fit$HighIncome), positive = "1")
+linear_cm2
 ```
+## Regression Model Comparison
+Can't get it to work yet
 
-```{r}
-# Created a linear regression for fun to estimate family income with test data set
-linear_mod3 <- lm(FamilyIncome ~ Insurance + HouseCosts + ElectricBill + NumWorkers + FamilyType + FoodStamp + OwnRent + NumBedrooms + NumChildren + NumRooms + NumPeople + NumVehicles + Language, data=acs)
-summary(linear_mod3)
-linear_mod2$fitted.values[1:25]
-acs$linest_HighIncome <- ifelse(linear_mod3$fit > 250000,1,0)
-confusionMatrix(as.factor(acs$linest_HighIncome), as.factor(acs$HighIncome), positive = "1")
+## Comments on logit and linear regression model
+1) My linear model does estimate negative incomes, which is not logically or stastically sound
+    However, the purpose is to find best predictive model. So I ignored this to see how accurate I could predict High Income
+    I also created multiple linear regressions, and chose this one. I based my decision on R-squared and changes in adjusted R-
+    squared as I added/subtracted variables.
 
-# My linear model does estimate negative incomes, which is not logically or stastically sound
-# However, the purpose is to find best predictive model, and income is merely used to predict if HighIncome.
-# So I ignored illogical family income to see how accurate I could predict High Income
-```
+2) Best regression model = linear regression model 2 - based on accuracy at .941 (null model = .9389) and sensitivity at .23277
+
 
 # DECISION TREES
 
@@ -390,7 +390,7 @@ tree4_cm
 # I would not choose this tree due to such .99 sensetivity
 ```
 
-### Tree Comparison
+## Tree Comparison
 
 ```{r}
 # make predictions using test data
@@ -411,7 +411,12 @@ sprintf("Tree2: Fit acc = %.3f Pred acc = %.3f",tree2_cm$overall['Accuracy'], tr
 sprintf("Tree3: Fit acc = %.3f Pred acc = %.3f",tree3_cm$overall['Accuracy'], tree_cm3_pred$overall['Accuracy'])
 sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",tree4_cm$overall['Accuracy'], tree_cm4_pred$overall['Accuracy'])
 ```
+## Decision Tree Decision
 
+1) At first glance tree 4 would appear the best choice. However, this tree has a nearly 100% accuracy in the fit data BUT the lowest 
+    prediction accuracy. This can be seen through its extreme complexity which leads to a .99 sensitivity. This is like overfitting 
+    that leads to "garbage" predictions unless the samples are nearly identical
+2) I would choose Tree 3 for two reasons - First, it has highest prediction accuracy. Second, it has a pretty low sensitivity at .14
 
 # k-nearest neighbor
 
