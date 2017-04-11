@@ -453,19 +453,37 @@ summary(acs_norm)
 ```
 
 ```{r}
-acs_knn <- knn(acsNorm_learn[,2:9], acsNorm_valid[,2:9], acsNorm_learn$HighIncome, k=5, prob = TRUE)
-head(acs_knn)
+acs_knn1 <- knn(acsNorm_learn[,2:9], acsNorm_valid[,2:9], acsNorm_learn$HighIncome, k=5, prob = TRUE)
+head(acs_knn1)
 
 # Show the classification matrix
-table(acsNorm_valid$HighIncome, acs_knn)
+table(acsNorm_valid$HighIncome, acs_knn1)
 ```
 
 ```{r}
-pcol <- as.character(as.numeric(acsNorm_valid$HighIncome1))
-pairs(acsNorm_valid[2:9], pch = pcol, col = c("green3", "red")
-  [(acsNorm_valid$HighIncome1 != acs_knn)+1])
+pcol1 <- as.character(as.numeric(acsNorm_valid$HighIncome1))
+pairs(acsNorm_valid[2:9], pch = pcol1, col = c("green3", "red")
+  [(acsNorm_valid$HighIncome1 != acs_knn1)+1])
+```
+```{r}
+knn1_pred <- predict(acs_knn1, acsNorm_learn, type="class")
+knn1_cm1_pred <- confusionMatrix(knn_pred, acs_test$HighIncome, positive = "1")
 ```
 
+
+```{r}
+acs_knn2 <- knn(acsNorm_learn[,2:5], acsNorm_valid[,2:5], acsNorm_learn$HighIncome, k=5, prob = TRUE)
+head(acs_knn2)
+
+# Show the classification matrix
+table(acsNorm_valid$HighIncome, acs_knn2)
+```
+
+```{r}
+pcol2 <- as.character(as.numeric(acsNorm_valid$HighIncome1))
+pairs(acsNorm_valid[2:5], pch = pcol2, col = c("green3", "red")
+  [(acsNorm_valid$HighIncome1 != acs_knn2)+1])
+```
 
 ## HACKER EXTRAS
 
