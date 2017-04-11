@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 acs <- read.table("http://jaredlander.com/data/acs_ny.csv",sep=",",
                   header=TRUE, stringsAsFactors=TRUE)
 ```
-
+# Load the necessary libraries
 ```{r}
 library(ggplot2)
 library(useful)
@@ -114,10 +114,15 @@ If you decide you'd like to create some new variables (feature engineering), fee
 # Get some summary stats on each variable
 summary(acs_fit)
 ```
+
+# Histogram
+
 ```{r}
 ggplot(acs_fit) + geom_histogram(aes(x=own_home), fill = "gray")
 ```
+
 # Scatterplots
+
 ```{r}
 # ADD NOTES HERE
 ggplot(data=acs_fit) + geom_point(aes(x=NumWorkers, y=FamilyIncome))
@@ -132,6 +137,7 @@ ggplot(data=acs_fit) + geom_point(aes(x=family_type_cat, y=FamilyIncome))
 # ADD NOTES HERE
 ggplot(data=acs_fit) + geom_point(aes(x=HouseCosts, y=FamilyIncome))
 ```
+
 # Box Plots
 ```{r}
 # ADD NOTES
@@ -169,7 +175,7 @@ ggplot(acs_fit) + geom_density(aes(x=acs_fit$ElectricBill)) + scale_x_log10(brea
 ggplot(acs_fit, aes(x=acs_fit$ElectricBill, y=acs_fit$FamilyIncome)) +geom_point() + geom_smooth()
 ```
 
-# GROUP BY ANALYSIS
+# Group by analysis
 
 ```{r}
 # This shows a good spread or range of each family type group. This will lend itself well to being included in my analysis
@@ -252,7 +258,7 @@ For each technique, you should:
 * use your three best fit models (one from each technique) to predict using the test dataset and evaluate which of the models performs the best
 * write a few paragraphs discussing what you did and what you found. In particular, how difficult is it to predict HighIncome? Did one of the techniques outperform the other two?
 
-# LOGISTIC REGRESSION
+# Logistic Regression
 
 1) specify the model
 2) show summary results
@@ -333,7 +339,7 @@ linear_cm2 <- confusionMatrix(as.factor(acs_fit$linest_HighIncome), as.factor(ac
 linear_cm2
 ```
 ## Regression Model Comparison
-Can't get it to work yet
+Could not get it to work how I wanted - I have the big chunk of code if you want to see it!
 
 ## Comments on logit and linear regression model
 1) My linear model does estimate negative incomes, which is not logically or stastically sound
@@ -366,6 +372,7 @@ head(predict(tree2, type="class"))
 tree2_cm <- confusionMatrix(predict(tree2, type="class"), acs_fit$HighIncome, positive = "1")
 tree2_cm
 ```
+#### Decision tree 3
 ```{r}
 # Decision tree 3
 tree3 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=.005))
