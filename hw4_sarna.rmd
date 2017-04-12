@@ -525,7 +525,7 @@ knn4_cm4_pred
 ```
 #### knn 5
 ```{r}
-acs_knn5 <- knn(acsNorm_learn[,1:8], acsNorm_valid[,1:8], acsNorm_learn$HighIncome, k=25, prob = TRUE)
+acs_knn5 <- knn(acsNorm_learn[,1:8], acsNorm_valid[,1:8], acsNorm_learn$HighIncome, k=20, prob = TRUE)
 head(acs_knn5)
 table(acsNorm_valid$HighIncome, acs_knn5)
 
@@ -551,10 +551,13 @@ knn6_cm6_pred
 ```
 ## K nearest neighbor decision
 
-1) As I increase k the accuract increases until I chose k = 50. I could continue to repeat this property or (loop) to find the best 
+1) As I increase k the accuracy increases until I chose k = 50. I could continue to repeat this property or (loop) to find the best 
     k value where change in accuracy = 0 (first derivative of the function).
 
 2) One thing to be carefule of is that the higher the k value the more complex the "outline" of the determinations.
 
 3) I would also think it be valuable to change the variables included in knn. I only did this with two sets of variables, and mostly
     focused on changing the size of k.
+
+4) Based on the knn I created I would select knn5 - I read that for the number of observations around 1000 that ideally
+  k = 20 (roughly). Not a hard and fast rule, but worth choosing based on the common standard.
