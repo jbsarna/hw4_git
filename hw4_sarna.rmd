@@ -24,6 +24,7 @@ library(plyr)
 library(rpart)
 library(rpart.plot)
 library(class)
+library(MuMIn)
 ```
 
 Let's assume our goal is to build a model to predict if household income is greater 
@@ -336,6 +337,15 @@ acs_fit$linest_HighIncome <- ifelse(linear_mod2$fit > 250000,1,0)
 linear_cm2 <- confusionMatrix(as.factor(acs_fit$linest_HighIncome), as.factor(acs_fit$HighIncome), positive = "1")
 linear_cm2
 ```
+```{r}
+glm1 <- glm(HighIncome ~ Insurance + HouseCosts + ElectricBill + FamilyType + FoodStamp + OwnRent + NumBedrooms + NumRooms, family=binomial(logit), na.action = "na.fail", data=acs_fit)
+dd <- dredge(glm1)
+```
+```{r}
+glm1
+dd
+```
+
 ## Regression Model Comparison
 Could not get it to work how I wanted - I have the big chunk of code if you want to see it!
 
