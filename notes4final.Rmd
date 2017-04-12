@@ -42,4 +42,11 @@ sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",log_cm4_cm$overall['Accuracy'], 
 sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",log_cm5_cm$overall['Accuracy'], log_cm5_pred$overall['Accuracy'])
 sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",linear_cm2$overall['Accuracy'], linear_cm2_pred$overall['Accuracy'])
 ```
-
+```{r}
+glm1 <- glm(HighIncome ~ Insurance + HouseCosts + ElectricBill + FamilyType + FoodStamp + OwnRent + NumBedrooms + NumRooms, family=binomial(logit), na.action = "na.fail", data=acs_fit)
+dd <- dredge(glm1)
+```
+```{r}
+glm1
+dd
+```
