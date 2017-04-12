@@ -50,3 +50,12 @@ dd <- dredge(glm1)
 glm1
 dd
 ```
+
+## HACKER EXTRAS
+
+There's tons of opportunities for extra credit here. A couple of ideas are:
+
+* try other classification techniques (see the ISLR textbook ([http://www-bcf.usc.edu/~gareth/ISL/](http://www-bcf.usc.edu/~gareth/ISL/))) such as neural nets, random forests or discriminant analysis
+* In Task 3, use k-fold cross-validation for the logistic regression models
+
+You'll be turning in your Rmd file with all of your work.
