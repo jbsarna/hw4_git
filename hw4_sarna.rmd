@@ -3,7 +3,8 @@ title: "HW4 - High income household prediction"
 output: html_document
 Author: Justin Sarna
 Class: MIS 680
-GitHub: https://github.com/jbsarna
+
+GitHub: https://github.com/jbsarna/hw4_git/blob/master/hw4_sarna.rmd
 ---
 
 ```{r setup, include=FALSE}
