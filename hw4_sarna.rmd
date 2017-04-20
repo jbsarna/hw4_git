@@ -26,6 +26,14 @@ library(rpart)
 library(rpart.plot)
 library(class)
 library(MuMIn)
+library(caret)
+library(dplyr)
+library(RColorBrewer)
+library(randomForest)
+library(kernlab)
+library(nlme)
+library(lme4)
+library(mgcv)
 ```
 
 Let's assume our goal is to build a model to predict if household income is greater 
@@ -100,7 +108,7 @@ The plot shows that there is a clear left skewned distribution - expected but st
 shapiro.test(acs_test$FamilyIncome)
 ```
 
-# Task 2: Preliminary EDA and feature engineering
+### Task 2: Preliminary EDA and feature engineering
 
 Before trying to build any classification models, you should do some exploratory data analysis to
 try to get a sense of which variables might be useful for trying to predict cases where FamilyIncome >= 250000. You should use a combination
@@ -113,14 +121,14 @@ If you decide you'd like to create some new variables (feature engineering), fee
 summary(acs_fit)
 ```
 
-# Histogram
+### Histogram
 
 ```{r}
 # see that those that those that own home correlate with higher incomes overall
 ggplot(acs_fit) + geom_histogram(aes(x=own_home), fill = "gray")
 ```
 
-# Scatterplots
+### Scatterplots
 
 ```{r}
 # scatter number of workers and family income
@@ -143,17 +151,20 @@ ggplot(data=acs_fit) + geom_point(aes(x=HouseCosts, y=FamilyIncome))
 # create matrix of scatterplots
 # pairs(acs[,1:19])
 ```
-# Boxplot
 
-#### coor_cartesian -> Setting limits on the coordinate system will zoom the plot (like you're looking at it with a magnifying glass), and will not change the underlying data like setting limits on a scale will.
+#### Boxplot
+
+coor_cartesian -> Setting limits on the coordinate system will zoom the plot (like you're looking at it with a magnifying glass), and will not change the underlying data like setting limits on a scale will.
+
 ```{r}
 # See that outliers begin roughly around income of $100,000
 ggplot(data=acs_fit) + geom_boxplot(aes(x=NumWorkers, y=FamilyIncome))  + coord_cartesian(ylim = c(0, 350000))
 ```
 
-# Density Plots
+### Density Plots
 
-#### These show the density by variable on axis. These are useful to see the concentration range of values
+These show the density by variable on axis. These are useful to see the concentration range of values
+
 ```{r}
 ggplot(acs_fit) + geom_density(aes(x=acs_fit$FamilyIncome)) + scale_x_continuous(labels=dollar)
 ```
@@ -170,7 +181,8 @@ ggplot(acs_fit) + geom_density(aes(x=acs_fit$FamilyIncome)) + scale_x_log10(brea
 ```{r}
 ggplot(acs_fit) + geom_density(aes(x=acs_fit$HouseCosts)) + scale_x_log10(breaks =c(100,1000,10000,100000), labels=dollar) + annotation_logticks(sides="bt")
 ```
-# Misc Plots
+
+### Misc Plots
 ```{r}
 # shows positive correlation between insurance and family income
 ggplot(acs_fit, aes(x=acs_fit$Insurance, y=acs_fit$FamilyIncome)) +geom_point() + geom_smooth()
@@ -212,7 +224,7 @@ ddply(acs,.(NumBedrooms,NumChildren,NumPeople,NumRooms,NumUnits,NumVehicles,NumW
 ddply(acs_fit,.(OwnRent), summarise, mean_income=mean(FamilyIncome))
 ```
 
-# Count (family income) by various important indicators/variables
+#### Count (family income) by various important indicators/variables
 
 ```{r}
 # Family Type
@@ -269,137 +281,337 @@ For each technique, you should:
 
 # Logistic Regression
 
-1) specify the model
-2) show summary results
-3) check fitted values from the model
-4) set variable equal to fitted values with probability greater than 50%
-5) show fitted values for visual check of model
-6) confusion matrix
+1) Specify the model
+2) Show summary results
+3) Predict using model
+4) Set binomial variable equal to predictions with criteria > .5
+5) Set variable = AIC
+6) Confusion matrix
+7) Display confusion matrix
 
 #### logistic regression model 1
+
 ```{r}
-logmod1 <- glm(HighIncome ~ FamilyType + NumVehicles + OwnRent + Insurance + YearBuilt, data=acs_fit, family=binomial(link="logit"))
+logmod1 <- glm(HighIncome ~ FamilyType + NumVehicles + OwnRent + Insurance + YearBuilt, data=acs_fit, 
+               family=binomial(link="logit"))
+
 summary(logmod1)
-#logmod1$fitted.values[1:10] - use this to check probabilities
-yhat_logmod1 <- (logmod1$fitted.values > 0.05) * 1
-#logmod1$y[1:200] - use this to check fitted values
-summary(as.factor(yhat_logmod1))
-summary(logmod1$fitted.values)
-log_cm1 <- confusionMatrix(as.factor(yhat_logmod1), as.factor(acs_fit$HighIncome), positive = "1")
+
+acs_test$yhat_logmod1 <- predict(logmod1, newdata=acs_test, type='response')
+
+acs_test$yhat_logmod1 <- (acs_test$yhat_logmod1 > 0.05) * 1
+
+log_mod1_aic <- summary(logmod1)$aic
+
+log_cm1 <- confusionMatrix(as.factor(acs_test$yhat_logmod1), as.factor(acs_test$HighIncome), positive = "1")
+
 log_cm1
 ```
 #### logistic regression model 2
+
 ```{r}
 logmod2 <- glm(HighIncome ~ FamilyType + FoodStamp + OwnRent, data=acs_fit, family=binomial(link="logit"))
+
 summary(logmod2)
-#logmod2$fitted.values[1:10] - use this to check probabilities
-yhat_logmod2 <- (logmod2$fitted.values > 0.5) * 1
-#logmod2$y[1:50] - use this to check fitted values
-log_cm2 <- confusionMatrix(as.factor(yhat_logmod2), as.factor(acs_fit$HighIncome), positive = "1")
+
+acs_test$yhat_logmod2 <- predict(logmod2, newdata=acs_test, type='response')
+
+acs_test$yhat_logmod2 <- (acs_test$yhat_logmod2 > 0.05) * 1
+
+log_mod2_aic <- summary(logmod2)$aic
+
+log_cm2 <- confusionMatrix(as.factor(acs_test$yhat_logmod2), as.factor(acs_test$HighIncome), positive = "1")
+
 log_cm2
 ```
 #### logistic regression model 3
+
 ```{r}
-logmod3 <- glm(HighIncome ~ InsuranceHigh + NumWorkers2 + HouseCostsHigh + FoodStamp + OwnRent, data=acs_fit, family=binomial(link="logit"))
+logmod3 <- glm(HighIncome ~ InsuranceHigh + NumWorkers2 + HouseCostsHigh + FoodStamp + OwnRent, 
+               data=acs_fit, family=binomial(link="logit"))
+
 summary(logmod3)
-#logmod3$fit[18100:18196] - use this to check probabilities
-yhat_logmod3 <- (logmod3$fit > 0.5) * 1
-#logmod3$y[18000:18196] - use this to check fitted values
-log_cm3 <- confusionMatrix(as.factor(yhat_logmod3), as.factor(acs_fit$HighIncome), positive = "1")
+
+acs_test$yhat_logmod3 <- predict(logmod3, newdata=acs_test, type='response')
+
+acs_test$yhat_logmod3 <- (acs_test$yhat_logmod3 > 0.05) * 1
+
+log_mod3_aic <- summary(logmod3)$aic
+
+log_cm3 <- confusionMatrix(as.factor(acs_test$yhat_logmod3), as.factor(acs_test$HighIncome), positive = "1")
+
 log_cm3
 ```
 #### logistic regression model 4
+
 ```{r}
 logmod4 <- glm(HighIncome ~ InsuranceHigh + NumWorkers2 + HouseCostsHigh, data=acs_fit, family=binomial(link="logit"))
+
 summary(logmod4)
-#logmod4$fit[18100:18196] - use this to check probabilities
-yhat_logmod4 <- (logmod4$fit > 0.5) * 1
-#logmod4$y[18000:18196] - use this to check fitted values
-log_cm4 <- confusionMatrix(as.factor(yhat_logmod4), as.factor(acs_fit$HighIncome), positive = "1")
+
+acs_test$yhat_logmod4 <- predict(logmod4, newdata=acs_test, type='response')
+
+acs_test$yhat_logmod4 <- (acs_test$yhat_logmod4 > 0.05) * 1
+
+log_mod4_aic <- summary(logmod4)$aic
+
+log_cm4 <- confusionMatrix(as.factor(acs_test$yhat_logmod4), as.factor(acs_test$HighIncome), positive = "1")
+
+log_cm4
 ```
 #### logistic regression model 5
+
 ```{r}
-logmod5 <- glm(HighIncome ~ HouseCostsHigh, data=acs_fit, family=binomial(link="logit"))
+logmod5 <- glm(HighIncome ~ FamilyType + NumBedrooms + NumChildren + NumPeople + NumRooms + NumUnits + NumVehicles + 
+                 NumWorkers + OwnRent + HouseCosts + ElectricBill + FoodStamp + Insurance + Language + 
+                 InsuranceHigh + NumWorkers2 + HouseCostsHigh, data=acs_fit, family=binomial(link="logit"))
+
 summary(logmod5)
-#logmod5$fit[18100:18196] - use this to check probabilities
-yhat_logmod5 <- (logmod4$fit > 0.5) * 1
-#logmod5$y[18000:18196] - use this to check fitted values
-log_cm5 <- confusionMatrix(as.factor(yhat_logmod5), as.factor(acs_fit$HighIncome), positive = "1")
+
+acs_test$yhat_logmod5 <- predict(logmod5, newdata=acs_test, type='response')
+
+acs_test$yhat_logmod5 <- (acs_test$yhat_logmod5 > 0.05) * 1
+
+log_mod5_aic <- summary(logmod5)$aic
+
+log_cm5 <- confusionMatrix(as.factor(acs_test$yhat_logmod5), as.factor(acs_test$HighIncome), positive = "1")
+
 log_cm5
 ```
+
+#### logistic regression model 6
+
+```{r}
+logmod6 <- glm(HighIncome ~ FamilyType + NumBedrooms + NumChildren + OwnRent + 
+              HouseCosts + ElectricBill + FoodStamp + InsuranceHigh, 
+              data=acs_fit, family=binomial(link="logit"))
+
+summary(logmod6)
+
+acs_test$yhat_logmod6 <- predict(logmod6, newdata=acs_test, type='response')
+
+acs_test$yhat_logmod6 <- (acs_test$yhat_logmod6 > 0.05) * 1
+
+log_mod6_aic <- summary(logmod6)$aic
+
+log_cm6 <- confusionMatrix(as.factor(acs_test$yhat_logmod6), as.factor(acs_test$HighIncome), positive = "1")
+
+log_cm6
+```
+
 # Linear Regression with predictions
 
-#### linear regression model 1
+# Linear Regression
+
+1) Specify the model
+2) Show summary results
+3) Predict using model
+4) Set binomilal variable equal to predictions with criteria > 250000
+5) Set variable = r squared
+5) Set variable = AIC
+6) Confusion matrix
+7) Display confusion matrix
+
+#### Linear regression model 1
+
 ```{r}
-# First linear regression to estimate family income with test data set
-linear_mod1 <- lm(FamilyIncome ~ FamilyType + FoodStamp + OwnRent + HouseCosts + Insurance + ElectricBill + NumRooms, data=acs_fit)
+linear_mod1 <- lm(FamilyIncome ~ FamilyType + FoodStamp + OwnRent + HouseCosts + Insurance + ElectricBill + 
+                    NumRooms, data=acs_fit)
+
 summary(linear_mod1)
+
+acs_test$lin_mod1_FamilyIncome <- predict(linear_mod1, newdata=acs_test)
+
+acs_test$lin_mod1_HighIncome <- ifelse(acs_test$lin_mod1_FamilyIncome > 250000,1,0)
+
+linear_mod1_rsq <- summary(linear_mod1)$r.sq
+
+linear_mod1_aic <- AIC(linear_mod1)
+
+linear_cm1 <- confusionMatrix(as.factor(acs_test$lin_mod1_HighIncome), as.factor(acs_test$HighIncome), positive = "1")
+
+linear_cm1
+
+# Residual Analysis
+summary(acs_test$HighIncome - predict(linear_mod1,newdata=acs_test))
 ```
-#### linear regression model 2
+
+#### Linear regression model 2
+
 ```{r}
-# Created another linear regression to estimate family income with test data set to be used for predicting high income
-linear_mod2 <- lm(FamilyIncome ~ Insurance + HouseCosts + ElectricBill + NumWorkers + FamilyType + FoodStamp + OwnRent + NumBedrooms + NumChildren + NumRooms + NumPeople + NumVehicles + Language, data=acs_fit)
+linear_mod2 <- lm(FamilyIncome ~ Insurance + HouseCosts + ElectricBill + NumWorkers + FamilyType + 
+                    FoodStamp + OwnRent + NumBedrooms + NumChildren + NumRooms + NumPeople + 
+                    NumVehicles + Language, data=acs_fit)
+
 summary(linear_mod2)
-linear_mod2$fitted.values[1:25]
-acs_fit$linest_HighIncome <- ifelse(linear_mod2$fit > 250000,1,0)
-linear_cm2 <- confusionMatrix(as.factor(acs_fit$linest_HighIncome), as.factor(acs_fit$HighIncome), positive = "1")
+
+acs_test$lin_mod2_FamilyIncome <- predict(linear_mod2, newdata=acs_test)
+
+acs_test$lin_mod2_HighIncome <- ifelse(acs_test$lin_mod2_FamilyIncome > 250000,1,0)
+
+linear_mod2_rsq <- summary(linear_mod2)$r.sq
+
+linear_mod2_aic <- AIC(linear_mod2)
+
+linear_cm2 <- confusionMatrix(as.factor(acs_test$lin_mod2_HighIncome), as.factor(acs_test$HighIncome), positive = "1")
+
 linear_cm2
+
+# Residual Analysis
+summary(acs_test$HighIncome - predict(linear_mod2,newdata=acs_test))
 ```
+
 ## Regression Model Comparison
-Could not get it to work how I wanted - I have the big chunk of code if you want to see it!
+
+List of all regression models
+
+```{r}
+sprintf("LOGISTIC REGRESSION")
+
+sprintf("Logistic model 1: Predicted Accuracy = %.4f Predicted Sensitivity = %.3f AIC = %.1f", 
+        log_cm1$overall['Accuracy'], log_cm1$byClass['Sensitivity'], log_mod1_aic)
+
+sprintf("Logistic model 2: Predicted Accuracy = %.4f Predicted Sensitivity = %.3f AIC = %.1f", 
+        log_cm2$overall['Accuracy'], log_cm2$byClass['Sensitivity'], log_mod2_aic)
+
+sprintf("Logistic model 3: Predicted Accuracy = %.4f Predicted Sensitivity = %.3f AIC = %.1f", 
+        log_cm3$overall['Accuracy'], log_cm3$byClass['Sensitivity'], log_mod3_aic)
+
+sprintf("Logistic model 4: Predicted Accuracy = %.4f Predicted Sensitivity = %.3f AIC = %.1f", 
+        log_cm4$overall['Accuracy'], log_cm4$byClass['Sensitivity'], log_mod4_aic)
+
+sprintf("Logistic model 5: Predicted Accuracy = %.4f Predicted Sensitivity = %.3f AIC = %.1f", 
+        log_cm5$overall['Accuracy'], log_cm5$byClass['Sensitivity'], log_mod5_aic)
+
+sprintf("Logistic model 6: Predicted Accuracy = %.4f Predicted Sensitivity = %.3f AIC = %.1f", 
+        log_cm6$overall['Accuracy'], log_cm6$byClass['Sensitivity'], log_mod6_aic)
+
+sprintf("Logistic model 6: Predicted Accuracy = %.4f Predicted Sensitivity = %.3f AIC = %.1f", 
+        log_cm6$overall['Accuracy'], log_cm6$byClass['Sensitivity'], log_mod6_aic)
+
+sprintf("                                                                                        ")
+
+sprintf("LINEAR REGRESSION")
+
+sprintf("Linear model 1:   Predicted Accuracy = %.4f Predicted Sensitivity = %.3f Adj R-squared = %.3f", 
+        linear_cm1$overall['Accuracy'], linear_cm1$byClass['Sensitivity'], linear_mod1_rsq)
+
+sprintf("Linear model 2:   Predicted Accuracy = %.4f Predicted Sensitivity = %.3f Adj R-squared = %.3f", 
+        linear_cm2$overall['Accuracy'], linear_cm2$byClass['Sensitivity'], linear_mod2_rsq)
+```
 
 # Comments on logit and linear regression model
+
 1) My linear model does estimate negative incomes, which is not logically or stastically sound
     However, the purpose is to find best predictive model. So I ignored this to see how accurate I could predict High Income
     I also created multiple linear regressions, and chose this one. I based my decision on R-squared and changes in adjusted R-
     squared as I added/subtracted variables.
 
-2) Best regression model = linear regression model 2 - based on accuracy at .941 (null model = .9389) and sensitivity at .23277
+2) Best regression model = linear regression model 2 - based on accuracy above null model of .9389
+
+3) Residual analysis of my LM models have a mean very far from 0, with quite a "large" range between min and max. This is not ideal, but for the purposes of stricly predicting as best as possible I can ignore this
+
+4) Model comparisons
+  + Unfortunately all log models have very poor predicting accuracy because they have much higher sensitivity (good)
+  + The linear models have highest sensitivity, with relatively high accuracy
 
 # DECISION TREES
 
 #### Decision tree 1
+
 ```{r}
-tree1 <- rpart(HighIncome ~ FamilyType + HouseCosts + NumWorkers2 + OwnRent + Insurance + NumWorkers2 + YearBuilt + NumBedrooms, data=acs_fit, method="class")
+tree1 <- rpart(HighIncome ~ FamilyType + HouseCosts + NumWorkers2 + OwnRent + Insurance + NumWorkers2 + 
+                 YearBuilt + NumBedrooms, data=acs_fit, method="class")
+
 rpart.plot(tree1)
-tree1
-head(predict(tree1))
-head(predict(tree1, type="class"))
+
+##head(predict(tree1))
+##head(predict(tree1, type="class"))
+
 tree1_cm <- confusionMatrix(predict(tree1, type="class"), acs_fit$HighIncome, positive = "1")
 tree1_cm
+
+# Residual analysis
+summary(acs_test$HighIncome - predict(tree1,newdata=acs_test))
 ```
 #### Decision tree 2
+
 ```{r}
-tree2 <- rpart(HighIncome ~ FoodStamp + Insurance + FamilyType, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=0))
+tree2 <- rpart(HighIncome ~ FoodStamp + Insurance + FamilyType, data=acs_fit, method="class", 
+               control=rpart.control(minsplit=2, cp=0))
+
 rpart.plot(tree2)
-tree2
-head(predict(tree2))
-head(predict(tree2, type="class"))
+
+##head(predict(tree2))
+##head(predict(tree2, type="class"))
+
 tree2_cm <- confusionMatrix(predict(tree2, type="class"), acs_fit$HighIncome, positive = "1")
 tree2_cm
+
+# Residual analysis
+summary(acs_test$HighIncome - predict(tree2,newdata=acs_test))
 ```
+
 #### Decision tree 3
+
 ```{r}
-tree3 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=.005))
+tree3 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts, data=acs_fit, method="class", 
+               control=rpart.control(minsplit=2, cp=.005))
+
 rpart.plot(tree3)
-tree3
-head(predict(tree3))
-head(predict(tree3, type="class"))
+
+##head(predict(tree3))
+##head(predict(tree3, type="class"))
+
 tree3_cm <- confusionMatrix(predict(tree3, type="class"), acs_fit$HighIncome, positive = "1")
 tree3_cm
+
+# Residual analysis
+summary(acs_test$HighIncome - predict(tree3,newdata=acs_test))
 ```
+
 #### Decision tree 4
+
 ```{r}
-tree4 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts + NumBedrooms + NumChildren + NumPeople + NumRooms + NumVehicles + NumWorkers + FoodStamp + OwnRent + ElectricBill + HouseCosts, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=0))
+tree4 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts + NumBedrooms + NumChildren + 
+                 NumPeople + NumRooms + NumVehicles + NumWorkers + FoodStamp + OwnRent + ElectricBill + 
+                 HouseCosts, data=acs_fit, method="class", control=rpart.control(minsplit=2, cp=0))
+
 rpart.plot(tree4)
-tree4
-head(predict(tree4))
-head(predict(tree4, type="class"))
+
+##head(predict(tree4))
+##head(predict(tree4, type="class"))
+
 tree4_cm <- confusionMatrix(predict(tree4, type="class"), acs_fit$HighIncome, positive = "1")
 tree4_cm
+
+# Residual analysis
+summary(acs_test$HighIncome - predict(tree4,newdata=acs_test))
+```
+
+#### Decision tree 5
+
+```{r}
+tree5 <- rpart(HighIncome ~ Insurance + ElectricBill + HouseCosts + NumWorkers2, data=acs_fit, 
+               method="class", control=rpart.control(minsplit=2, cp=.0025))
+
+rpart.plot(tree5)
+
+##head(predict(tree5))
+##head(predict(tree5, type="class"))
+
+tree5_cm <- confusionMatrix(predict(tree5, type="class"), acs_fit$HighIncome, positive = "1")
+tree5_cm
+
+# Residual analysis
+summary(acs_test$HighIncome - predict(tree5,newdata=acs_test))
 ```
 
 ## Tree Comparison
+
+1) Make predictions using test data
+2) Confusion matrix
+3) Display all models for comparison
 
 ```{r}
 # make predictions using test data
@@ -407,157 +619,219 @@ tree1_pred <- predict(tree1, acs_test, type="class" )
 tree2_pred <- predict(tree2, acs_test, type="class" ) 
 tree3_pred <- predict(tree3, acs_test, type="class" ) 
 tree4_pred <- predict(tree4, acs_test, type="class" )
+tree5_pred <- predict(tree5, acs_test, type="class" )
 
 # Confusion matrices
 tree_cm1_pred <- confusionMatrix(tree1_pred, acs_test$HighIncome, positive = "1")
 tree_cm2_pred <- confusionMatrix(tree2_pred, acs_test$HighIncome, positive = "1")
 tree_cm3_pred <- confusionMatrix(tree3_pred, acs_test$HighIncome, positive = "1")
 tree_cm4_pred <- confusionMatrix(tree4_pred, acs_test$HighIncome, positive = "1")
+tree_cm5_pred <- confusionMatrix(tree5_pred, acs_test$HighIncome, positive = "1")
 
-# Display comparison of accuracy of each decision tree 
-sprintf("Tree1: Fit acc = %.3f Pred acc = %.3f",tree1_cm$overall['Accuracy'], tree_cm1_pred$overall['Accuracy'])
-sprintf("Tree2: Fit acc = %.3f Pred acc = %.3f",tree2_cm$overall['Accuracy'], tree_cm2_pred$overall['Accuracy'])
-sprintf("Tree3: Fit acc = %.3f Pred acc = %.3f",tree3_cm$overall['Accuracy'], tree_cm3_pred$overall['Accuracy'])
-sprintf("Tree4: Fit acc = %.3f Pred acc = %.3f",tree4_cm$overall['Accuracy'], tree_cm4_pred$overall['Accuracy'])
+# Display comparison of accuracy of each decision tree - Finish updating this section for final output
+sprintf("The no information rate = %.4f", tree1_cm$overall[5])
+
+sprintf("Tree1: Fit Accuracy = %.4f Predicted Accuracy = %.4f Predicted Sensitivity = %.4f",tree1_cm$overall['Accuracy'], 
+        tree_cm1_pred$overall['Accuracy'], tree_cm1_pred$byClass['Sensitivity'])
+
+sprintf("Tree2: Fit Accuracy = %.4f Predicted Accuracy = %.4f Predicted Sensitivity = %.4f",tree2_cm$overall['Accuracy'], 
+        tree_cm2_pred$overall['Accuracy'], tree_cm2_pred$byClass['Sensitivity'])
+
+sprintf("Tree3: Fit Accuracy = %.4f Predicted Accuracy = %.4f Predicted Sensitivity = %.4f",tree3_cm$overall['Accuracy'], 
+        tree_cm3_pred$overall['Accuracy'], tree_cm3_pred$byClass['Sensitivity'])
+
+sprintf("Tree4: Fit Accuracy = %.4f Predicted Accuracy = %.4f Predicted Sensitivity = %.4f",tree4_cm$overall['Accuracy'], 
+        tree_cm4_pred$overall['Accuracy'], tree_cm4_pred$byClass['Sensitivity'])
+
+sprintf("Tree5: Fit Accuracy = %.4f Predicted Accuracy = %.4f Predicted Sensitivity = %.4f",tree5_cm$overall['Accuracy'], 
+        tree_cm5_pred$overall['Accuracy'], tree_cm5_pred$byClass['Sensitivity'])
 ```
-## Decision Tree Decision
 
-1) At first glance tree 4 would appear the best choice. However, this tree has a nearly 100% accuracy in the fit data BUT the lowest 
-    prediction accuracy. This can be seen through its extreme complexity which leads to a .99 sensitivity. This is like overfitting 
-    that leads to "garbage" predictions unless the samples are nearly identical
-2) I would choose Tree 3 for two reasons - First, it has highest prediction accuracy. Second, it has a pretty low sensitivity at .14
+# Decision Tree Decision
 
-# k-nearest neighbor
+1) Highest fit accuracy does not result in in most accurate predictions - Model 4 is a prime example of overfitting
+    + Model 4 has nearly perfect fit accuracy
+    + Model 4 also has the worst prediction accuracy coupled with highest sensitivity
+    + Model 4 accuracy drops significantly once tested
+
+2) Model 5 is a close contender to model 3 - they have the highest predicted accuracies BUT very different sensitivities
+
+3) Decision tree 3 performs better than tree 1, 2, 4, and 5
+    + First, it has higher prediction accuracy at .9426
+    + Second, the predicted accuracy is the same as the fit accuracy (did not decrease once tested like others)
+
+
+# K-nearest neighbor
+
+1) k-nearest neighbor can only take numerical data
+
+2) It is recommended (in most all cases) to normalize the data set
 
 ## First Normalize the dataset
+
 ```{r}
+# function to normalize data
 normalize <- function(x) {
 num <- x - min(x)
 denom <- max(x) - min(x)
 return (num/denom)
 }
 ```
+
 ```{r}
+# create and normalize a new data frame for knn analysis
 acs_numericals <- data.frame(acs$NumBedrooms, acs$NumChildren, acs$NumPeople, acs$NumRooms, acs$NumVehicles, acs$NumWorkers, acs$HouseCosts, acs$ElectricBill, acs$Insurance)
 acs_norm <- as.data.frame(lapply(acs_numericals[1:8], normalize))
 acs_norm$HighIncome1 <- c(acs$HighIncome)
 ```
+
+## Split data frame into learn and validate subsets
+1) Count nunber of rows
+2) Create index of random row numbers for validation set
+3) Create the learning and validate data sets
+
 ```{r}
-# Count rows
 m <- nrow(acs_numericals)
 
-# Create index of random row nums for the validation set
 val <- sample(1:m, size = round(m/3))
 
-# Create the learning and validation sets
 acsNorm_learn <- acs_norm[-val,]
 acsNorm_valid <- acs_norm[val,]
 ```
 
 ```{r}
+# view new data frame to verify normalization
 summary(acs_norm)
 ```
+## knn method
+
+1) specify knn model
+2) create a visualization
+3) create a confusion matrix
+
 #### knn 1
 
 ```{r}
 acs_knn1 <- knn(acsNorm_learn[,1:8], acsNorm_valid[,1:8], acsNorm_learn$HighIncome1, k=5, prob = TRUE)
-head(acs_knn1)
-
-# Show the classification matrix
-table(acsNorm_valid$HighIncome1, acs_knn1)
+##head(acs_knn1)
 
 pcol1 <- as.character(as.numeric(acsNorm_valid$HighIncome1))
 pairs(acsNorm_valid[1:8], pch = pcol1, col = c("green3", "red")
   [(acsNorm_valid$HighIncome1 != acs_knn1)+1])
 
-# confusion matrix for knn1
-knn1_cm1_pred <- confusionMatrix(acs_knn1, acsNorm_valid$HighIncome, positive = "1")
-knn1_cm1_pred
-```
-
-```{r}
-# confusion matrix for knn1
-knn1_cm1_pred <- confusionMatrix(acs_knn1, acsNorm_valid$HighIncome, positive = "1")
-knn1_cm1_pred
+knn1_cm_pred <- confusionMatrix(acs_knn1, acsNorm_valid$HighIncome, positive = "1")
+knn1_cm_pred
 ```
 
 #### knn 2
+
 ```{r}
 acs_knn2 <- knn(acsNorm_learn[,1:4], acsNorm_valid[,1:4], acsNorm_learn$HighIncome, k=5, prob = TRUE)
-head(acs_knn2)
-table(acsNorm_valid$HighIncome, acs_knn2)
+##head(acs_knn2)
 
 pcol2 <- as.character(as.numeric(acsNorm_valid$HighIncome1))
 pairs(acsNorm_valid[2:5], pch = pcol2, col = c("green3", "red")
   [(acsNorm_valid$HighIncome1 != acs_knn2)+1])
 
-knn2_cm2_pred <- confusionMatrix(acs_knn2, acsNorm_valid$HighIncome, positive = "1")
-knn2_cm2_pred
+knn2_cm_pred <- confusionMatrix(acs_knn2, acsNorm_valid$HighIncome, positive = "1")
+knn2_cm_pred
 ```
 
 #### knn 3
 
 ```{r}
 acs_knn3 <- knn(acsNorm_learn[,6:8], acsNorm_valid[,6:8], acsNorm_learn$HighIncome, k=3, prob = TRUE)
-head(acs_knn3)
-table(acsNorm_valid$HighIncome, acs_knn3)
+##head(acs_knn3)
 
 pcol3 <- as.character(as.numeric(acsNorm_valid$HighIncome1))
 pairs(acsNorm_valid[6:8], pch = pcol3, col = c("green3", "red")
   [(acsNorm_valid$HighIncome1 != acs_knn3)+1])
 
-knn3_cm3_pred <- confusionMatrix(acs_knn3, acsNorm_valid$HighIncome, positive = "1")
-knn3_cm3_pred
+knn3_cm_pred <- confusionMatrix(acs_knn3, acsNorm_valid$HighIncome, positive = "1")
+knn3_cm_pred
 ```
+
 #### knn 4
 
 ```{r}
 acs_knn4 <- knn(acsNorm_learn[,1:8], acsNorm_valid[,1:8], acsNorm_learn$HighIncome, k=10, prob = TRUE)
-head(acs_knn4)
-table(acsNorm_valid$HighIncome, acs_knn4)
+##head(acs_knn4)
 
 pcol4 <- as.character(as.numeric(acsNorm_valid$HighIncome1))
 pairs(acsNorm_valid[1:8], pch = pcol4, col = c("green3", "red")
   [(acsNorm_valid$HighIncome1 != acs_knn4)+1])
 
-knn4_cm4_pred <- confusionMatrix(acs_knn4, acsNorm_valid$HighIncome, positive = "1")
-knn4_cm4_pred
+knn4_cm_pred <- confusionMatrix(acs_knn4, acsNorm_valid$HighIncome, positive = "1")
+knn4_cm_pred
 ```
+
 #### knn 5
+
 ```{r}
-acs_knn5 <- knn(acsNorm_learn[,1:8], acsNorm_valid[,1:8], acsNorm_learn$HighIncome, k=20, prob = TRUE)
-head(acs_knn5)
-table(acsNorm_valid$HighIncome, acs_knn5)
+acs_knn5 <- knn(acsNorm_learn[,1:8], acsNorm_valid[,1:8], acsNorm_learn$HighIncome, k=25, prob = TRUE)
+
+#head(acs_knn5)
 
 pcol5 <- as.character(as.numeric(acsNorm_valid$HighIncome1))
 pairs(acsNorm_valid[1:8], pch = pcol5, col = c("green3", "red")
   [(acsNorm_valid$HighIncome1 != acs_knn5)+1])
 
-knn5_cm5_pred <- confusionMatrix(acs_knn5, acsNorm_valid$HighIncome, positive = "1")
-knn5_cm5_pred
+knn5_cm_pred <- confusionMatrix(acs_knn5, acsNorm_valid$HighIncome, positive = "1")
+knn5_cm_pred
 ```
+
 #### knn 6
+
 ```{r}
 acs_knn6 <- knn(acsNorm_learn[,1:8], acsNorm_valid[,1:8], acsNorm_learn$HighIncome, k=50, prob = TRUE)
-head(acs_knn6)
-table(acsNorm_valid$HighIncome, acs_knn6)
-
+##head(acs_knn6)
 pcol6 <- as.character(as.numeric(acsNorm_valid$HighIncome1))
+
 pairs(acsNorm_valid[1:8], pch = pcol6, col = c("green3", "red")
   [(acsNorm_valid$HighIncome1 != acs_knn6)+1])
 
-knn6_cm6_pred <- confusionMatrix(acs_knn6, acsNorm_valid$HighIncome, positive = "1")
-knn6_cm6_pred
+knn6_cm_pred <- confusionMatrix(acs_knn6, acsNorm_valid$HighIncome, positive = "1")
+knn6_cm_pred
 ```
-## K nearest neighbor decision
 
-1) As I increase k the accuracy increases until I chose k = 50. I could continue to repeat this property or (loop) to find the best 
-    k value where change in accuracy = 0 (first derivative of the function).
+# Compare all knn models in one output
+Summary Output of each model for comparison. 
+Displayed values are for the test data set.
 
-2) One thing to be carefule of is that the higher the k value the more complex the "outline" of the determinations.
+How well did each model do compared to the others?
 
-3) I would also think it be valuable to change the variables included in knn. I only did this with two sets of variables, and mostly
-    focused on changing the size of k.
+```{r}
+sprintf("The no information rate = %.4f", knn1_cm_pred$overall[5])
 
-4) Based on the knn I created I would select knn5 - I read that for the number of observations around 1000 that ideally
-  k = 20 (roughly). Not a hard and fast rule, but worth choosing based on the common standard.
+sprintf("Knn 1: Predicted Accuracy = %.4f Predicted Sensitivity = %.4f", knn1_cm_pred$overall['Accuracy'], 
+        knn1_cm_pred$byClass['Sensitivity'])
+
+sprintf("Knn 2: Predicted Accuracy = %.4f Predicted Sensitivity = %.4f", knn2_cm_pred$overall['Accuracy'], 
+        knn2_cm_pred$byClass['Sensitivity'])
+
+sprintf("Knn 3: Predicted Accuracy = %.4f Predicted Sensitivity = %.4f", knn3_cm_pred$overall['Accuracy'], 
+        knn3_cm_pred$byClass['Sensitivity'])
+
+sprintf("Knn 4: Predicted Accuracy = %.4f Predicted Sensitivity = %.4f", knn4_cm_pred$overall['Accuracy'], 
+        knn4_cm_pred$byClass['Sensitivity'])
+
+sprintf("Knn 5: Predicted Accuracy = %.4f Predicted Sensitivity = %.4f", knn5_cm_pred$overall['Accuracy'], 
+        knn5_cm_pred$byClass['Sensitivity'])
+
+sprintf("Knn 6: Predicted Accuracy = %.4f Predicted Sensitivity = %.4f", knn6_cm_pred$overall['Accuracy'], 
+        knn6_cm_pred$byClass['Sensitivity'])
+```
+
+# K nearest neighbor decision
+
+1) I would choose knn model 6 because highest (tested) accuracy. This decision is made with reservation because of 
+    low sensitivity. However, all all of these models have low sensitivity, which leads to decision based on accuracy.
+
+2) As I increase k the accuracy increases until I chose k = 50. One could continue to repeat this process or (loop) to 
+    find the best exact k value where change in accuracy = 0 (first derivative of the function).
+
+3) One thing to be careful of is that the higher the k value the more complex the model. This 
+    could lead to a "garbage" model (as I call it), which has low sensitivity and little use outside of this scope.
+
+4) I would also think it be valuable to change the variables included in knn. I only did this with two sets of variables, 
+    and mostly focused on changing the size of k. You could spend much more time tweaking independent variable combinations
