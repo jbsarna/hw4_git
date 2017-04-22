@@ -219,7 +219,7 @@ ddply(acs_fit,.(FoodStamp,NumBedrooms), summarise, mean_income=mean(FamilyIncome
 ```
 ```{r}
 # This is a little excessive, but would be useful for piping it to a csv file (for example) if relevant to tasks at hand
-ddply(acs,.(NumBedrooms,NumChildren,NumPeople,NumRooms,NumUnits,NumVehicles,NumWorkers), summarise, mean_income=mean(FamilyIncome))
+##ddply(acs,.(NumBedrooms,NumChildren,NumPeople,NumRooms,NumUnits,NumVehicles,NumWorkers), summarise, mean_income=mean(FamilyIncome))
 ```
 ```{r}
 ddply(acs_fit,.(OwnRent), summarise, mean_income=mean(FamilyIncome))
@@ -508,7 +508,7 @@ sprintf("Linear model 2:   Predicted Accuracy = %.4f Predicted Sensitivity = %.3
     I also created multiple linear regressions, and chose this one. I based my decision on R-squared and changes in adjusted R-
     squared as I added/subtracted variables.
 
-2) Best regression model = linear regression model 2 - based on accuracy above null model of .9389
+2) Best regression model = linear regression model 1 - based on accuracy above null model of .9444 and sensitivity at .243
 
 3) Residual analysis of my LM models have a mean very far from 0, with quite a "large" range between min and max. This is not ideal, but for the purposes of stricly predicting as best as possible I can ignore this
 
@@ -836,3 +836,27 @@ sprintf("Knn 6: Predicted Accuracy = %.4f Predicted Sensitivity = %.4f", knn6_cm
 
 4) I would also think it be valuable to change the variables included in knn. I only did this with two sets of variables, 
     and mostly focused on changing the size of k. You could spend much more time tweaking independent variable combinations
+    
+
+# Comparative model comparison
+
+1) Best regression model = linear regression model 2 - based on accuracy .9444 and sensitivity at 0.243
+
+2) Best decision Tree Decision = model 3 - based on accuracy at .9426 and sensitivity of .1471 (low is not ideal, but predicted the best)
+
+3) Best knn model = knn model 5 because highest (tested) accuracy at .9404 and sensitivity at .1146. This decision is made with reservation because of low sensitivity. However, all all of the knn models have low sensitivity, which leads to decision based on accuracy alone
+
+## Best overall model
+
+Linear Regression model 1! Comparing this model to all other reveals that it has BOTH highest accuracy and sensitivity!
+
+#### General comments on findings
+
+    + Fit accuracy does not result in in most accurate predictions - Decision tree 4 is a good example of overfitting
+    + Until a model is tested on new data, a decision on which model to use is risky
+    + Logistic models were very ineffective, which was surprising to me
+    + I had better luck using linear regression to estimate family income, converting the estimates to a binary, and testing the model
+    + The more complicated models can lead to weak predictive power
+    + Interestingly, my best model for hw4 was a relatively simple model using the "workhorse" method of linear regression
+    
+    
